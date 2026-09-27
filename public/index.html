@@ -150,7 +150,7 @@
   }
   function isHome(i, player) {
     const r = Math.floor(i / SIZE), c = i % SIZE;
-    return player === WHITE ? (r >= 5 && c <= 2) : (r <= 2 && c >= 5);
+    return player === WHITE ? (r >= 5 && c <= 3) : (r <= 2 && c >= 4);
   }
 
   // --- board rendering

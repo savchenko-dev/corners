@@ -1,7 +1,7 @@
-// Corners (Уголки) rules. 8x8 board, 9 pieces each in opposite 3x3 corners.
+// Corners (Уголки) rules. 8x8 board, 12 pieces each in opposite 3-row x 4-column corners.
 // A move is either one orthogonal step to an empty square, or a chain of one
 // or more orthogonal jumps over any piece (own or opponent's) onto empty squares.
-// A player wins by filling the opponent's starting corner with all 9 pieces.
+// A player wins by filling the opponent's starting corner with all 12 pieces.
 
 export const SIZE = 8;
 export const WHITE = 1;
@@ -10,11 +10,11 @@ export const BLACK = 2;
 const idx = (r, c) => r * SIZE + c;
 const inBounds = (r, c) => r >= 0 && r < SIZE && c >= 0 && c < SIZE;
 
-// White starts bottom-left (rows 5-7, cols 0-2), Black top-right (rows 0-2, cols 5-7).
+// White starts bottom-left (rows 5-7, cols 0-3), Black top-right (rows 0-2, cols 4-7).
 export function homeSquares(player) {
   const out = [];
   for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 3; c++) {
+    for (let c = 0; c < 4; c++) {
       out.push(player === WHITE ? idx(SIZE - 1 - r, c) : idx(r, SIZE - 1 - c));
     }
   }

@@ -3,11 +3,11 @@
 Two-player online Corners game. Node.js + WebSockets, no database, single container.
 
 ## Rules
-- 8×8 board, each player has 9 pieces in a 3×3 corner.
+- 8×8 board, each player has 12 pieces in a 3-row × 4-column corner.
 - On your turn move one piece: either one step orthogonally to an empty square,
   or jump orthogonally over any piece (yours or the opponent's) onto an empty square.
   Jumps can be chained in one move.
-- First player to move all 9 pieces into the opponent's corner wins.
+- First player to move all 12 pieces into the opponent's corner wins.
 
 ## Run locally
 ```sh
