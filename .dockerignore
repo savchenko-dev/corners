@@ -3,3 +3,5 @@ npm-debug.log
 .git
 .omc
 *.test.js
+.coolify_token
+coolify-api.sh

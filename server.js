@@ -176,8 +176,8 @@ setInterval(() => {
   }
 }, 60000);
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Corners listening on http://0.0.0.0:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Corners listening on port ${PORT}`);
 });
 
 for (const sig of ['SIGINT', 'SIGTERM']) {
