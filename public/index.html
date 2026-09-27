@@ -82,7 +82,8 @@
   <section id="lobby" class="panel">
     <div class="muted">Move all your pieces into the opposite corner before your friend does. Step one square, or jump over pieces (chains allowed).</div>
     <div class="row">
-      <button id="createBtn" class="primary">Create game</button>
+      <button id="createBtn" class="primary">Create online game</button>
+      <button id="localBtn">Play on this device</button>
     </div>
     <div class="row">
       <input id="codeInput" placeholder="ROOM CODE" maxlength="8" autocomplete="off" />
@@ -124,7 +125,7 @@
   const boardEl = $('board');
 
   let ws, state = null, me = 0, selected = -1, legal = new Map(), lastMove = null;
-  let reconnectTimer = null, wantRoom = null;
+  let reconnectTimer = null, wantRoom = null, local = false;
 
   // --- rules (mirrored from server for highlighting only; server is authoritative)
   const inB = (r, c) => r >= 0 && r < SIZE && c >= 0 && c < SIZE;
@@ -151,6 +152,25 @@
   function isHome(i, player) {
     const r = Math.floor(i / SIZE), c = i % SIZE;
     return player === WHITE ? (r >= 5 && c <= 3) : (r <= 2 && c >= 4);
+  }
+
+  function checkWinner(board) {
+    const all = (pl, target) => { for (let i = 0; i < 64; i++) if (isHome(i, target) && board[i] !== pl) return false; return true; };
+    if (all(WHITE, BLACK)) return WHITE;
+    if (all(BLACK, WHITE)) return BLACK;
+    return 0;
+  }
+  function localGame() {
+    const board = new Array(64).fill(0);
+    for (let i = 0; i < 64; i++) { if (isHome(i, WHITE)) board[i] = WHITE; else if (isHome(i, BLACK)) board[i] = BLACK; }
+    return { board, turn: WHITE, winner: 0, moves: 0, connected: { [WHITE]: true, [BLACK]: true } };
+  }
+  function localMove(from, to) {
+    const pl = state.turn;
+    state.board[to] = pl; state.board[from] = 0; state.moves++;
+    state.winner = checkWinner(state.board);
+    if (!state.winner) state.turn = pl === WHITE ? BLACK : WHITE;
+    me = state.turn; lastMove = { from, to };
   }
 
   // --- board rendering
@@ -184,14 +204,15 @@
       sq.classList.toggle('hl', legal.has(i));
       sq.classList.toggle('last', !!lastMove && (lastMove.from === i || lastMove.to === i));
     }
-    boardEl.classList.toggle('flipped', me === BLACK);
+    boardEl.classList.toggle('flipped', !local && me === BLACK);
     $('dotW').classList.toggle('on', state.connected[WHITE]);
     $('dotB').classList.toggle('on', state.connected[BLACK]);
     $('moveCount').textContent = `Moves: ${state.moves}`;
-    $('youAre').textContent = me ? `You are ${me === WHITE ? 'White' : 'Black'}` : 'Spectating';
+    $('youAre').textContent = local ? 'Same device' : (me ? `You are ${me === WHITE ? 'White' : 'Black'}` : 'Spectating');
 
     let text;
-    if (state.winner) text = state.winner === me ? 'You win! 🎉' : (me ? 'You lose.' : `${state.winner === WHITE ? 'White' : 'Black'} wins`);
+    if (local) text = state.winner ? `${state.winner === WHITE ? 'White' : 'Black'} wins! 🎉` : `${state.turn === WHITE ? 'White' : 'Black'} to move`;
+    else if (state.winner) text = state.winner === me ? 'You win! 🎉' : (me ? 'You lose.' : `${state.winner === WHITE ? 'White' : 'Black'} wins`);
     else if (!state.connected[WHITE] || !state.connected[BLACK]) text = 'Waiting for opponent… share the room code or link.';
     else if (myTurn) text = 'Your turn';
     else text = `${state.turn === WHITE ? 'White' : 'Black'} to move`;
@@ -201,7 +222,7 @@
   function onSquare(i) {
     if (!state || !me || state.winner || state.turn !== me) return;
     if (selected >= 0 && legal.has(i)) {
-      send({ type: 'move', from: selected, to: i });
+      if (local) localMove(selected, i); else send({ type: 'move', from: selected, to: i });
       selected = -1; legal = new Map();
       render();
       return;
@@ -229,15 +250,16 @@
       const msg = JSON.parse(ev.data);
       switch (msg.type) {
         case 'joined':
+          local = false; $('copyBtn').classList.remove('hidden');
           me = msg.color; wantRoom = msg.code; selected = -1; legal = new Map(); lastMove = null;
           location.hash = msg.code;
           $('roomCode').textContent = msg.code;
           showGame(true);
           break;
         case 'state':
-          state = msg; render(); break;
+          if (!local) { state = msg; render(); } break;
         case 'moved':
-          lastMove = { from: msg.from, to: msg.to }; break;
+          if (!local) lastMove = { from: msg.from, to: msg.to }; break;
         case 'restarted':
           lastMove = null; selected = -1; legal = new Map(); toast(''); break;
         case 'error':
@@ -261,6 +283,11 @@
   }
 
   $('createBtn').onclick = () => { wantRoom = null; send({ type: 'create' }); };
+  $('localBtn').onclick = () => {
+    local = true; wantRoom = null; state = localGame(); me = WHITE; selected = -1; legal = new Map(); lastMove = null;
+    $('roomCode').textContent = 'LOCAL'; $('copyBtn').classList.add('hidden');
+    showGame(true); render();
+  };
   $('joinBtn').onclick = () => {
     const code = $('codeInput').value.trim().toUpperCase();
     if (!code) return toast('Enter a room code');
@@ -274,7 +301,11 @@
     setTimeout(() => ($('copyBtn').textContent = 'Copy link'), 1500);
   };
   $('leaveBtn').onclick = () => { location.hash = ''; location.reload(); };
-  $('restartBtn').onclick = () => { if (confirm('Start a new game for both players?')) send({ type: 'restart' }); };
+  $('restartBtn').onclick = () => {
+    if (!confirm('Start a new game for both players?')) return;
+    if (local) { state = localGame(); me = WHITE; selected = -1; legal = new Map(); lastMove = null; render(); }
+    else send({ type: 'restart' });
+  };
 
   const fromHash = location.hash.replace('#', '').trim().toUpperCase();
   if (fromHash) { wantRoom = fromHash; $('codeInput').value = fromHash; }

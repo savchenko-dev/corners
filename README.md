@@ -17,7 +17,10 @@ npm test
 ```
 
 ## Play
-1. Open the site, click **Create game**.
+Same device: click **Play on this device** and take turns on one screen (no server round-trips).
+
+Online:
+1. Open the site, click **Create online game**.
 2. Send the room code or **Copy link** to your friend.
 3. Friend opens the link (or enters the code). First to join is White, second is Black; anyone else spectates.
 
